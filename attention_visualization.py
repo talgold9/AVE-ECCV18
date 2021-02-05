@@ -1,19 +1,18 @@
 from __future__ import print_function
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "0" # set GPU ID
-import torch.nn as nn
+# os.environ["CUDA_VISIBLE_DEVICES"] = "0" # set GPU ID
+import torch
+import h5py
 from torch.autograd import Variable
-import matplotlib.pyplot as plt
 from dataloader import *
-import random
-import models_fusion
-import time
-from sklearn.metrics import accuracy_score
 import torch.nn.functional as F
 import imageio
+import numpy as np
 import cv2
 from sklearn.preprocessing import MinMaxScaler
 import warnings
+from models_fusion import *
+from models import *
 warnings.filterwarnings("ignore") 
 
 scaler = MinMaxScaler(copy=True, feature_range=(0, 1))
@@ -45,14 +44,14 @@ def create_heatmap(im_map, im_cloud, kernel_size=(5,5),colormap=cv2.COLORMAP_JET
 
 
 # features, labels, and testing set list
-dir_video  = "data/visual_feature.h5"
-dir_audio  = "data/audio_feature.h5"
+dir_video  = "/Users/talgoldfryd/Documents/Startup/shooter-trainer/data/videos_ex/vid2_viz.h5"
+dir_audio  = "/Users/talgoldfryd/Documents/Startup/shooter-trainer/data/videos_ex/vid2_aud.h5"
 dir_labels = "data/labels.h5"
 dir_order_test = "data/test_order.h5"
 
 # access to original videos for extracting video frames
-raw_video_dir = "data/AVE" # videos in AVE dataset
-lis = os.listdir(raw_video_dir)
+raw_video_dir = "/Users/talgoldfryd/Documents/Startup/shooter-trainer/data/videos_ex/vid2.mp4" # videos in AVE dataset
+# lis = os.listdir(raw_video_dir)
 f = open("data/Annotations.txt", 'r')
 dataset = f.readlines() 
 print("The dataset contains %d samples" % (len(dataset)))
@@ -62,19 +61,20 @@ with h5py.File(dir_order_test, 'r') as hf:
     test_order = hf['order'][:]
 
 # pre-trained models
-att_model = torch.load('model/AV_att.pt')
+att_model = att_Net(128, 128, 512, 29)
+att_model.load_state_dict(torch.load('model/AV_att.pt', map_location=torch.device('cpu')).state_dict())
 att_layer = att_model._modules.get('affine_h') # extract attention maps from the layer
 
 
 # load testing set
 AVEData = AVEDataset(video_dir=dir_video, audio_dir=dir_audio, label_dir=dir_labels,
-                     order_dir=dir_order_test, batch_size=402)
+                     order_dir=dir_order_test, batch_size=1)
 nb_batch = AVEData.__len__()
 print(nb_batch)
-audio_inputs, video_inputs, labels = AVEData.get_batch(0)
-audio_inputs = Variable(audio_inputs.cuda(), requires_grad=False)
-video_inputs = Variable(video_inputs.cuda(), requires_grad=False)
-labels = labels.numpy()
+audio_inputs, video_inputs = AVEData.get_batch(0)
+audio_inputs = Variable(audio_inputs, requires_grad=False)
+video_inputs = Variable(video_inputs, requires_grad=False)
+# labels = labels.numpy()
 
 # generate attention maps
 att_map = torch.zeros((4020, 49, 1))
