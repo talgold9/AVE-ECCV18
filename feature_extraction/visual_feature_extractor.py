@@ -17,7 +17,7 @@ from math import ceil, floor
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--video_file', default='/Users/talgoldfryd/Documents/Startup/shooter-trainer/data/videos_ex/vid2.mp4', help='')
-parser.add_argument('--output_path', default='/Users/talgoldfryd/Documents/Startup/shooter-trainer/data/videos_ex/vid2.h5', help='')
+parser.add_argument('--output_path', default='/Users/talgoldfryd/Documents/Startup/shooter-trainer/data/videos_ex/vid2_viz.h5', help='')
 args = parser.parse_args()
 
 def video_frame_sample(frame_interval, video_length, sample_num):
@@ -37,6 +37,7 @@ model = Model(inputs=base_model.input, outputs=base_model.get_layer('block5_pool
 video = cv2.VideoCapture(args.video_file)
 num_of_frames = video.get(cv2.CAP_PROP_FRAME_COUNT) # length of video
 sample_num = int(video.get(cv2.CAP_PROP_FPS)) # frame number for each second
+sample_num = sample_num // 3
 duration = num_of_frames / sample_num
 t = floor(duration)
 video.release()

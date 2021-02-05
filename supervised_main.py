@@ -4,7 +4,7 @@
 
 from __future__ import print_function
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "0" # GPU ID
+# os.environ["CUDA_VISIBLE_DEVICES"] = "0" # GPU ID
 import torch
 import torch.nn as nn
 import numpy as np
@@ -28,10 +28,10 @@ parser = argparse.ArgumentParser(description='AVE')
 parser.add_argument('--model_name', type=str, default='AV_att',
                     help='model name')
 
-parser.add_argument('--dir_video', type=str, default="data/visual_feature.h5",
+parser.add_argument('--dir_video', type=str, default="/Users/talgoldfryd/Documents/Startup/shooter-trainer/data/videos_ex/vid2_viz.h5",
                     help='visual features')
 parser.add_argument('--dir_audio', type=str,
-                    default='data/audio_feature.h5',
+                    default='/Users/talgoldfryd/Documents/Startup/shooter-trainer/data/videos_ex/vid2_aud.h5',
                     help='audio features')
 parser.add_argument('--dir_labels', type=str, default='data/labels.h5',
                     help='labels of AVE dataset')
@@ -60,7 +60,7 @@ if model_name == 'AV_att': # corresponding to A+V-att model in the paper
 elif model_name == 'DMRN': # corresponding to DMRN. The pre-trained DMRN.pt was trained by fine-tuning the AV_att model.
     net_model = TBMRF_Net(128, 128, 512, 29, 1)
 
-net_model.cuda()
+net_model
 
 loss_function = nn.MultiLabelSoftMarginLoss()
 optimizer = optim.Adam(net_model.parameters(), lr=1e-3)
@@ -96,9 +96,9 @@ def train(args):
         for i in range(nb_batch):
             audio_inputs, video_inputs, labels = AVEData.get_batch(i)
 
-            audio_inputs = Variable(audio_inputs.cuda(), requires_grad=False)
-            video_inputs = Variable(video_inputs.cuda(), requires_grad=False)
-            labels = Variable(labels.cuda(), requires_grad=False)
+            audio_inputs = Variable(audio_inputs, requires_grad=False)
+            video_inputs = Variable(video_inputs, requires_grad=False)
+            labels = Variable(labels, requires_grad=False)
             net_model.zero_grad()
             scores = net_model(audio_inputs, video_inputs)
             loss = loss_function(scores, labels)
@@ -123,8 +123,8 @@ def val(args):
                          order_dir=args.dir_order_val, batch_size=402)
     nb_batch = AVEData.__len__()
     audio_inputs, video_inputs, labels = AVEData.get_batch(0)
-    audio_inputs = Variable(audio_inputs.cuda(), requires_grad=False)
-    video_inputs = Variable(video_inputs.cuda(), requires_grad=False)
+    audio_inputs = Variable(audio_inputs, requires_grad=False)
+    video_inputs = Variable(video_inputs, requires_grad=False)
     labels = labels.numpy()
     x_labels = net_model(audio_inputs, video_inputs)
     x_labels = x_labels.cpu().data.numpy()
@@ -136,20 +136,24 @@ def val(args):
 
 def test(args):
 
-    model = torch.load('model/' + model_name  + ".pt")
-    model.eval()
+    net_model.load_state_dict(torch.load('model/' + model_name  + ".pt", map_location=torch.device('cpu')).state_dict())
+    net_model.eval()
+
+
     AVEData = AVEDataset(video_dir=args.dir_video, audio_dir=args.dir_audio, label_dir=args.dir_labels,
-                         order_dir=args.dir_order_test, batch_size=402)
+                         order_dir=args.dir_order_test, batch_size=1)
     nb_batch = AVEData.__len__()
-    audio_inputs, video_inputs, labels = AVEData.get_batch(0)
-    audio_inputs = Variable(audio_inputs.cuda(), requires_grad=False)
-    video_inputs = Variable(video_inputs.cuda(), requires_grad=False)
-    labels = labels.numpy()
-    x_labels = model(audio_inputs, video_inputs)
+    audio_inputs, video_inputs = AVEData.get_batch(0)
+    audio_inputs = Variable(audio_inputs, requires_grad=False)
+    video_inputs = Variable(video_inputs, requires_grad=False)
+    # labels = labels.numpy()
+    x_labels = net_model(audio_inputs, video_inputs)
     x_labels = x_labels.cpu().data.numpy()
-    acc = compute_acc(labels, x_labels, nb_batch)
-    print(acc)
-    return acc
+    preds = np.argmax(x_labels, axis = 1)
+    a = 1
+    # acc = compute_acc(labels, x_labels, nb_batch)
+    # print(acc)
+    # return acc
 
 
 # training and testing

@@ -5,7 +5,7 @@ import h5py
 
 class AVEDataset(object):
 
-    def __init__(self, video_dir, audio_dir, label_dir, order_dir, batch_size):
+    def __init__(self, video_dir, audio_dir, label_dir, order_dir, batch_size=1):
         self.video_dir = video_dir
         self.audio_dir = audio_dir
         self.batch_size = batch_size
@@ -13,17 +13,18 @@ class AVEDataset(object):
         with h5py.File(order_dir, 'r') as hf:
             order = hf['order'][:]
         self.lis = order
+        self.lis = [0]
 
         with h5py.File(audio_dir, 'r') as hf:
-            self.audio_features = hf['avadataset'][:]
-        with h5py.File(label_dir, 'r') as hf:
-            self.labels = hf['avadataset'][:]
+            self.audio_features = hf['dataset'][:]
+        # with h5py.File(label_dir, 'r') as hf:
+        #     self.labels = hf['dataset'][:]
         with h5py.File(video_dir, 'r') as hf:
-            self.video_features = hf['avadataset'][:]
+            self.video_features = hf['dataset'][:]
 
-        self.video_batch = np.float32(np.zeros([self.batch_size, 10, 7, 7, 512]))
-        self.audio_batch = np.float32(np.zeros([self.batch_size, 10, 128]))
-        self.label_batch = np.float32(np.zeros([self.batch_size, 10, 29]))
+        self.video_batch = np.float32(np.zeros(self.video_features.shape))
+        self.audio_batch = np.float32(np.zeros(self.audio_features.shape))
+        # self.label_batch = np.float32(np.zeros([self.batch_size, 10, 29]))
 
     def __len__(self):
         return len(self.lis)
@@ -35,10 +36,10 @@ class AVEDataset(object):
 
             self.video_batch[i, :, :, :, :] = self.video_features[self.lis[id], :, :, :, :]
             self.audio_batch[i, :, :] = self.audio_features[self.lis[id], :, :]
-            self.label_batch[i, :, :] = self.labels[self.lis[id], :, :]
+            # self.label_batch[i, :, :] = self.labels[self.lis[id], :, :]
 
-        return torch.from_numpy(self.audio_batch).float(), torch.from_numpy(self.video_batch).float(), torch.from_numpy(
-            self.label_batch).float()
+        return torch.from_numpy(self.audio_batch).float(), torch.from_numpy(self.video_batch).float()
+               # ,torch.from_numpy(self.label_batch).float()
 
 class AVE_weak_Dataset(object):
     def __init__(self, video_dir, video_dir_bg, audio_dir , audio_dir_bg, label_dir, label_dir_bg, label_dir_gt, order_dir, batch_size, status):

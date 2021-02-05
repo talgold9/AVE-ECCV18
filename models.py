@@ -55,20 +55,20 @@ class att_Net(nn.Module):
 
         z_t = self.affine_h((F.tanh(content_v))).squeeze(2)
         alpha_t = F.softmax(z_t, dim=-1).view(z_t.size(0), -1, z_t.size(1)) # attention map
-        c_t = torch.bmm(alpha_t, V).view(-1, 512)
+        c_t                        = torch.bmm(alpha_t, V).view(-1, 512)
         video_t = c_t.view(video.size(0), -1, 512) #attended visual features
 
         # Bi-LSTM for temporal modeling
-        hidden1 = (autograd.Variable(torch.zeros(2, audio.size(0), self.hidden_dim).cuda()),
-                   autograd.Variable(torch.zeros(2, audio.size(0), self.hidden_dim).cuda()))
-        hidden2 = (autograd.Variable(torch.zeros(2, audio.size(0), self.hidden_dim).cuda()),
-                   autograd.Variable(torch.zeros(2, audio.size(0), self.hidden_dim).cuda()))
+        hidden1 = (autograd.Variable(torch.zeros(2, audio.size(0), self.hidden_dim)),
+                   autograd.Variable(torch.zeros(2, audio.size(0), self.hidden_dim)))
+        hidden2 = (autograd.Variable(torch.zeros(2, audio.size(0), self.hidden_dim)),
+                   autograd.Variable(torch.zeros(2, audio.size(0), self.hidden_dim)))
         self.lstm_video.flatten_parameters()
         self.lstm_audio.flatten_parameters()
         lstm_audio, hidden1 = self.lstm_audio(
-            audio.view(len(audio), 10, -1), hidden1)
+            audio.view(len(audio), audio.size()[1], -1), hidden1)
         lstm_video, hidden2 = self.lstm_video(
-            video_t.view(len(video), 10, -1), hidden2)
+            video_t.view(len(video), video.size()[1], -1), hidden2)
 
         # concatenation and prediction
         output = torch.cat((lstm_audio, lstm_video), -1)

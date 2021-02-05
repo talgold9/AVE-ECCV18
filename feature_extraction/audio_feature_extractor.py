@@ -19,9 +19,11 @@ args = parser.parse_args()
 checkpoint_path = 'vggish_model.ckpt'
 pca_params_path = 'vggish_pca_params.npz'
 vid = torchvision.io.read_video(args.video_file)
-num_secs = floor(vid[1].shape[1]/ vid[2]['audio_fps']) # length of the audio sequence. Videos in our dataset are all 10s long.
-
 sr = vid[2]['audio_fps']
+sr = sr // 3
+num_secs = floor(vid[1].shape[1]/ sr) # length of the audio sequence. Videos in our dataset are all 10s long.
+
+
 
 # path of audio files and AVE annotation
 # audio_dir = "..." # .wav audio files
